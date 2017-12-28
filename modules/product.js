@@ -4,6 +4,9 @@ var Schema = mongoose.Schema;
 // create a schema
 var productSchema = new Schema({
   name: String,
+  condition: String,
+  price: Number,
+  description: String,
   created_at: Date,
   img:{
     data: Buffer,

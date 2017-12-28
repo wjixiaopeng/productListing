@@ -13,7 +13,7 @@ http.createServer(function (req, res) {
     return searchProduct(req, res);
   } else {
   	// if server did not return anything, we should handle expection: NOT FOUND 404
-  	notFound(res);
+  	return notFound(res);
   }
 }).listen(8080);
 
@@ -27,6 +27,9 @@ function addProduct(req, res) {
   if (qpath == '/product') {
     var newProduct = Product({
       name : qdata.name,
+      condition: qdata.condition,
+      price: qdata.price,
+      description: qdata.description
     })
     newProduct.save(function(err) {
       if (err) throw err;
@@ -46,11 +49,12 @@ function searchProduct(req, res) {
 
   // console.log(qpath);
   if (qpath === '/product') {
-    Product.find({name : qdata.name}, function(err, products) {
-      if (err) throw err;
-      res.setHeader("Access-Control-Allow-Origin","*");
-      res.end(JSON.stringify(products));    // convert to string to transfer
-    });
+    // Product.find({name : qdata.name}, function(err, products) {
+    //   if (err) throw err;
+    //   res.setHeader("Access-Control-Allow-Origin","*");
+    //   res.end(JSON.stringify(products));    // convert to string to transfer
+    // });
+    return filterSearch(qdata, res);
   } else {
   	fs.readFile('.' + qpath, function(err, data) {
       if (err) notFound(res);
@@ -58,14 +62,58 @@ function searchProduct(req, res) {
       if (qpath.split('.').pop() === 'css') {
       	res.writeHead(200, {'Content-Type': 'text/css'});
       } else {
-	    res.writeHead(200, {'Content-Type': 'text/html'});
-	  }
+        res.writeHead(200, {'Content-Type': 'text/html'});
+      }
       res.write(data);
       return res.end();
     });
   }
 };
 
+function filterSearch(qdata, res) {
+  // qdata.prototype.hasOwnProperty('name')); debug failed!
+  var res_name;
+  if ('name' in qdata) {
+    res_name = nameSearch(qdata.name);
+    console.log(res_name);
+  }
+  if ('condition' in qdata) {
+    var res_condition = conditionSearch(qdata.condition);
+  }
+  var res_price;
+  if ('price' in qdata) {
+    res_price = priceSearch(qdata.price);
+  } 
+  else if ('lowPrice' in qdata) {
+    res_price = lowPriceSearch(qdata.lowPrice);
+  } 
+  else if ('highPrice' in qdata) {
+    res_price = highPriceSearch(qdata.highPrice);
+  }
+  
+}
+function nameSearch(name) {
+  var promise = Product.find({name:name}).exec();
+  return promise;
+}
+function conditionSearch(condition) {
+  var cons = condition.split("+");
+  var promise = Product.find().exec();
+  return promise;
+}
+function priceSearch(price) {
+  var range = price.split("->");
+  var promise = Product.find({price: { $gt: range[0], $lt: range[1]}}).exec();
+  return promise;
+}
+function lowPriceSearch(lowPrice) {
+  var promise = Product.find({price: { $gt: lowPrice}}).exec();
+  return promise;
+}
+function highPriceSearch(highPrice) {
+  var promise = Product.find({price: { $lt: highPrice}}).exec();
+  return promise;
+}
 // not found function:
 function notFound(res) {
   res.writeHead(404, {'Content-Type': 'text/html'});
