@@ -1,4 +1,3 @@
-var User = require('./modules/user');
 var Product = require('./modules/product');
 var url = require('url');
 var http = require('http');
@@ -17,7 +16,6 @@ http.createServer(function (req, res) {
   }
 }).listen(8080);
 
-
 // add product function
 function addProduct(req, res) {
   var q = url.parse(req.url, true);
@@ -31,6 +29,7 @@ function addProduct(req, res) {
       price: qdata.price,
       description: qdata.description
     })
+    console.log(newProduct);
     newProduct.save(function(err) {
       if (err) throw err;
       console.log(qdata.name + ' created!');
@@ -47,13 +46,7 @@ function searchProduct(req, res) {
   // if pathname is empty, rederiect to home page
   var qpath = q.pathname === '/' ? '/index.html': q.pathname;
 
-  // console.log(qpath);
   if (qpath === '/product') {
-    // Product.find({name : qdata.name}, function(err, products) {
-    //   if (err) throw err;
-    //   res.setHeader("Access-Control-Allow-Origin","*");
-    //   res.end(JSON.stringify(products));    // convert to string to transfer
-    // });
     return filterSearch(qdata, res);
   } else {
   	fs.readFile('.' + qpath, function(err, data) {
@@ -71,49 +64,47 @@ function searchProduct(req, res) {
 };
 
 function filterSearch(qdata, res) {
-  // qdata.prototype.hasOwnProperty('name')); debug failed!
-  var res_name;
+  // use query list to collect all query field: name, condition, price
+  var query = [];
+  // name query
   if ('name' in qdata) {
-    res_name = nameSearch(qdata.name);
-    console.log(res_name);
+    var n_query = {"name" : qdata.name};
+    query.push(n_query);
   }
+  // condition query with check boxs
   if ('condition' in qdata) {
-    var res_condition = conditionSearch(qdata.condition);
+    var cons = qdata.condition.split(" "); // not split by "+"
+    var temp = {"$in" : cons};
+    var c_query = {"condition" : temp};
+    query.push(c_query);
   }
-  var res_price;
+  // price query with 'range'
   if ('price' in qdata) {
-    res_price = priceSearch(qdata.price);
+    var range = qdata.price.split("->");
+    var temp = {"$gt" : range[0], "$lt" : range[1]};
+    var p_query = {"price": temp}; 
+    query.push(p_query);
   } 
+  // price query with 'greater than'
   else if ('lowPrice' in qdata) {
-    res_price = lowPriceSearch(qdata.lowPrice);
+    var temp = {"$gt" : qdata.lowPrice};
+    var p_query = {"price": temp}; 
+    query.push(p_query);
   } 
+  // price query with 'less than'
   else if ('highPrice' in qdata) {
-    res_price = highPriceSearch(qdata.highPrice);
+    var temp = {"$lt" : qdata.highPrice};
+    var p_query = {"price": temp}; 
+    query.push(p_query);
   }
-  
-}
-function nameSearch(name) {
-  var promise = Product.find({name:name}).exec();
-  return promise;
-}
-function conditionSearch(condition) {
-  var cons = condition.split("+");
-  var promise = Product.find().exec();
-  return promise;
-}
-function priceSearch(price) {
-  var range = price.split("->");
-  var promise = Product.find({price: { $gt: range[0], $lt: range[1]}}).exec();
-  return promise;
-}
-function lowPriceSearch(lowPrice) {
-  var promise = Product.find({price: { $gt: lowPrice}}).exec();
-  return promise;
-}
-function highPriceSearch(highPrice) {
-  var promise = Product.find({price: { $lt: highPrice}}).exec();
-  return promise;
-}
+  // call find $ and to query all filter search
+  Product.find({"$and" : query}, function(err, products) {
+    if (err) throw err;
+    res.setHeader("Access-Control-Allow-Origin","*");
+    res.end(JSON.stringify(products));    // convert to string to transfer
+  });
+};
+
 // not found function:
 function notFound(res) {
   res.writeHead(404, {'Content-Type': 'text/html'});
