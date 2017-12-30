@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>PRODUCT SEARCH SYSTEM</title>
+    <link rel="shortcut icon" href="">
+    <link rel="stylesheet" type="text/css" href="styles.css">
+ </head>
+<body>
+
+<center>
+    <h1>PRODUCT SEARCH SYSTEM</h1>
+</center>
+
+<hr>
+
+<form>
+  <h2>Add Product</h2>
+  Name: <input type="text" id="apName">
+  <br>
+  <br>
+  Condition: 
+  <select id="apCondition">
+    <option selected="selected" value="Not Specified">Not Specified</option>
+    <option value="New">new</option>
+    <option value="Used">Used</option>
+    <option value="Refurbished">Refurbished</option>
+  </select>
+  <br>
+  <br>
+  Price($): <input type="text" id="apPrice">
+  <br>
+  <br>
+  Description: <input type="text" id="apDes">
+  <br>
+  <br>
+  <button type="button" onclick="clearTable();addProduct()">
+  Add
+  </button>
+</form>
+
+
+<h3 id="aStatus">
+</h3>
+
+<form>
+  <h2>Search Product</h2>
+  Name: <input type="text" id="spName">
+  <br>
+  <br>
+  Condition:
+  <br> 
+    <input type="checkbox" id = "spNew"> New
+    <input type="checkbox" id = "spUsed"> Used
+    <input type="checkbox" id = "spRefurbished"> Refurbished
+  <br>
+  <br>
+  Price($):
+  <br>
+  from: <input type="text" id="lowPrice"> to: <input type="text" id="highPrice">
+  <br>
+  <br>
+  <button type="button" onclick="clearTable();searchProduct()">
+    Search
+  </button>
+</form>
+
+<h3 id="sStatus">
+</h3>
+
+
+<table id="products">
+  <tr>
+    <th onclick="sortTable(0)"> Prodcut Name</th>
+    <th onclick="sortTable(1)"> Condition</th>
+    <th onclick="sortTable(2)"> Price</th>
+    <th onclick="sortTable(3)"> Description</th>
+    <th onclick="sortTable(4)"> Created Time</th>
+  </tr>
+  <tr>
+    <td>apple</td>
+    <td>Used</td>
+    <td>1</td>
+    <td>"This apple was droped on Newton's head"</td>
+    <td>2017-1-1</td>
+  </tr>
+  <tr>
+    <td>book</td>
+    <td>New</td>
+    <td>10</td>
+    <td>"Time Travel"</td>
+    <td>2018-1-1</td>
+  </tr>
+  <tr>
+    <td>cup</td>
+    <td>Used</td>
+    <td>5</td>
+    <td>"Star"</td>
+    <td>2019-1-1</td>
+  </tr>
+</table>
+
+<script>
+  // defaut url on port 8080
+  var host = "http://"+window.location.hostname;
+  var url = host+":8080/product?";
+
+  function searchProduct() {
+    var tempUrl = getSearchUrl();
+    if (tempUrl == "") return;
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+      if (this.readyState == 4 && this.status == 200) {
+        products = JSON.parse(this.responseText);   // not json
+        if (Object.keys(products).length == 0) {    // not found any product
+          document.getElementById("sStatus").innerHTML = "not found any Result!";
+        } else {
+          document.getElementById("sStatus").innerHTML = "found " + Object.keys(products).length + " new results!";
+          console.log(products);
+          upDateTable(products);
+        }
+      }
+    };
+    xhttp.open("GET", url + tempUrl, true);
+    xhttp.send();
+  };
+  function getSearchUrl() {
+    var tempUrl = "";
+    // get name
+    var name = document.getElementById('spName').value;
+    if (name.length != 0) {
+      tempUrl += "name=" + name;
+    }
+    
+    // get every checkbox of conditions without dealing with "+"
+    var condition = "";
+    if (document.getElementById("spNew").checked) {
+      condition += "New";
+    }
+    if (document.getElementById("spUsed").checked) {
+      if (condition.length != 0) condition += "+";
+      condition += "Used";
+    }
+    if (document.getElementById("spRefurbished").checked) {
+      if (condition.length != 0) condition += "+";
+      condition += "Refurbished"
+    }
+    if (condition.length != 0) {
+      if (tempUrl.length != 0) {
+        tempUrl += "&";
+      }
+      tempUrl += "condition=" + condition;
+    }
+    
+    // get price range and handle exceptions!
+    var lowPrice = document.getElementById('lowPrice').value;
+    var highPrice = document.getElementById('highPrice').value;
+    
+    if (isNaN(lowPrice) || isNaN(highPrice)) {
+      document.getElementById("sStatus").innerHTML = "Please input number format!";
+      return "";
+    } else if (lowPrice.length != 0 || highPrice.length != 0) {
+      if (lowPrice.length != 0 && lowPrice < 0) {
+        document.getElementById("sStatus").innerHTML = "lower Price should not be negaive!";
+        return "";
+      }
+      if (highPrice.length != 0 && highPrice <=0) {
+        document.getElementById("sStatus").innerHTML = "higher Price should not be negaive!";
+        return "";
+      }
+      if (lowPrice.length != 0 && highPrice.length != 0) {
+        if (lowPrice > highPrice) {
+          document.getElementById("sStatus").innerHTML = "high Price should not smaller than low price!";
+          return "";
+        }
+        if (tempUrl.length != 0) {
+          tempUrl += "&";
+        }
+        tempUrl += "price=" + lowPrice + "->" + highPrice;
+      } else if (lowPrice.length != 0){
+        if (tempUrl.length != 0) {
+          tempUrl += "&";
+        }
+        tempUrl += "lowPrice=" + lowPrice;
+      } else if (highPrice.length != 0) {
+        if (tempUrl.length != 0) {
+          tempUrl += "&";
+        }
+        tempUrl += "highPrice=" + highPrice;
+      }
+    }
+    if (tempUrl == "") {
+      document.getElementById("sStatus").innerHTML = "You should put something into from!";
+    }
+    return tempUrl;
+  }
+  function upDateTable(products) {
+    for (i in products) {
+      // get every products' every attributes
+      var tr = document.createElement("TR");
+      // cannot use Object.keys, becuase return order is random
+      // console.log(Object.keys(products[i]));
+      var td1 = document.createElement("TD");
+      var td2 = document.createElement("TD");
+      var td3 = document.createElement("TD");
+      var td4 = document.createElement("TD");
+      var td5 = document.createElement("TD");
+      td1.appendChild(document.createTextNode(products[i].name));
+      td2.appendChild(document.createTextNode(products[i].condition));
+      td3.appendChild(document.createTextNode(products[i].price));
+      td4.appendChild(document.createTextNode(products[i].description));
+      td5.appendChild(document.createTextNode(products[i].created_at));
+      tr.appendChild(td1);
+      tr.appendChild(td2);
+      tr.appendChild(td3);
+      tr.appendChild(td4);
+      tr.appendChild(td5);
+      document.getElementById("products").appendChild(tr);
+    }
+  }
+  function addProduct() {
+    var tempUrl = getAddUrl();
+    if (tempUrl == "") return;
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+          document.getElementById("aStatus").innerHTML = "new "+ document.getElementById('apName').value + " created";
+        } else {
+          document.getElementById("aStatus").innerHTML = "create failed";
+        }
+    }
+    xhttp.open("POST", url + tempUrl, true);
+    xhttp.send();
+  };
+  function getAddUrl() {
+    var name = document.getElementById('apName').value;
+    var price = document.getElementById('apPrice').value;
+    console.log(name + " " + price);
+    if (name.length == 0) {
+      document.getElementById("aStatus").innerHTML = "Empty name input!";
+      return "";
+    }
+    if (price.length == 0 || isNaN(price) || price < 0) {
+      document.getElementById("aStatus").innerHTML = "Please input a reasonable price!";
+      return "";
+    }
+    var tempUrl = "";
+    tempUrl += "name=" + name;
+    tempUrl += "&condition=" + document.getElementById('apCondition').value;
+    tempUrl += "&price=" + price;
+    tempUrl += "&description=" + document.getElementById('apDes').value;
+    return tempUrl;
+  }
+  function sortTable(n) {
+    var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0, up, down;
+    table = document.getElementById("products");
+    switching = true;
+    // Set the sorting direction to ascending:
+    dir = "asc"; 
+    /* Make a loop that will continue until
+    no switching has been done: */
+    while (switching) {
+      // Start by saying: no switching is done:
+      switching = false;
+      rows = table.getElementsByTagName("TR");
+      /* Loop through all table rows (except the
+      first, which contains table headers): */
+      for (i = 1; i < (rows.length - 1); i++) {
+        // Start by saying there should be no switching:
+        shouldSwitch = false;
+        /* Get the two elements you want to compare,
+        one from current row and one from the next: */
+        x = rows[i].getElementsByTagName("TD")[n];
+        y = rows[i + 1].getElementsByTagName("TD")[n];
+        
+        // if value is number, that should be return nature order(price is number when n=2)
+        if (n == 2) {
+          up = parseFloat(x.innerText);
+          down = parseFloat(y.innerText);
+        } else {
+          up = x.innerHTML.toLowerCase();
+          down = y.innerHTML.toLowerCase();
+        }
+        /* Check if the two rows should switch place,
+        based on the direction, asc or desc: */
+        if (dir == "asc") {
+          if (up > down) {
+            // If so, mark as a switch and break the loop:
+            shouldSwitch= true;
+            break;
+          }
+        } else if (dir == "desc") {
+          if (up < down) {
+            // If so, mark as a switch and break the loop:
+            shouldSwitch= true;
+            break;
+          }
+        }
+      }
+      if (shouldSwitch) {
+        /* If a switch has been marked, make the switch
+        and mark that a switch has been done: */
+        rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+        switching = true;
+        // Each time a switch is done, increase this count by 1:
+        switchcount ++; 
+      } else {
+        /* If no switching has been done AND the direction is "asc",
+        set the direction to "desc" and run the while loop again. */
+        if (switchcount == 0 && dir == "asc") {
+          dir = "desc";
+          switching = true;
+        }
+      }
+    }
+  };
+  function clearTable() {
+    var txt ="<tr>";
+    txt += "<th onclick='sortTable(0)'> Prodcut Name</th>";
+    txt += "<th onclick='sortTable(1)'> Condition</th>";
+    txt += "<th onclick='sortTable(2)'> Price</th>";
+    txt += "<th onclick='sortTable(3)'> Description</th>";
+    txt += "<th onclick='sortTable(4)'> Created Time</th>";
+    txt += "</tr>";
+    document.getElementById("products").innerHTML = txt;
+    document.getElementById("aStatus").innerHTML = "";
+    document.getElementById("sStatus").innerHTML = "";
+  };
+</script>
+
+</body>
+</html>
