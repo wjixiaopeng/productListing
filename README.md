@@ -19,7 +19,7 @@ This project is a website for product listing. Users are allowed to input, save 
 2. Use Terminal and change directory to current project
 3. Add Dependency: npm install
 4. Run this Project: npm start
-5. Check on this sever: http://45.33.45.114:8080
+5. Check on : http://45.33.45.114:8080
 
 ## Parts of project
 

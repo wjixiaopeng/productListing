@@ -70,11 +70,11 @@
 
 <table id="products">
   <tr>
-    <th onclick="sortTable(0)"> Prodcut Name</th>
-    <th onclick="sortTable(1)"> Condition</th>
-    <th onclick="sortTable(2)"> Price</th>
-    <th onclick="sortTable(3)"> Description</th>
-    <th onclick="sortTable(4)"> Created Time</th>
+    <th onclick="sortTable(0)"> Prodcut Name </th>
+    <th onclick="sortTable(1)"> Condition </th>
+    <th onclick="sortTable(2)"> Price︎ </th>
+    <th onclick="sortTable(3)"> Description︎ </th>
+    <th onclick="sortTable(4)"> Created Time︎ </th>
   </tr>
 </table>
 
@@ -94,9 +94,13 @@
           document.getElementById("sStatus").innerHTML = "not found any Result!";
         } else {
           document.getElementById("sStatus").innerHTML = "found " + Object.keys(products).length + " new results!";
-          console.log(products);
-          upDateTable(products);
+          for (i in products) {
+            upDateTable(products[i]);
+          }
         }
+      } else {
+        document.getElementById("sStatus").innerHTML = "connection failed";
+        return;
       }
     };
     xhttp.open("GET", url + tempUrl, true);
@@ -172,48 +176,54 @@
     }
     return tempUrl;
   }
-  function upDateTable(products) {
-    for (i in products) {
-      // get every products' every attributes
-      var tr = document.createElement("TR");
-      // cannot use Object.keys, becuase return order is random
-      // console.log(Object.keys(products[i]));
-      var td1 = document.createElement("TD");
-      var td2 = document.createElement("TD");
-      var td3 = document.createElement("TD");
-      var td4 = document.createElement("TD");
-      var td5 = document.createElement("TD");
-      td1.appendChild(document.createTextNode(products[i].name));
-      td2.appendChild(document.createTextNode(products[i].condition));
-      td3.appendChild(document.createTextNode(products[i].price));
-      td4.appendChild(document.createTextNode(products[i].description));
-      td5.appendChild(document.createTextNode(products[i].created_at));
-      tr.appendChild(td1);
-      tr.appendChild(td2);
-      tr.appendChild(td3);
-      tr.appendChild(td4);
-      tr.appendChild(td5);
-      document.getElementById("products").appendChild(tr);
-    }
+  function upDateTable(product) {
+    // get every products' every attributes
+    var tr = document.createElement("TR");
+    // cannot use Object.keys, becuase return order is random
+    // console.log(Object.keys(products[i]));
+    var td1 = document.createElement("TD");
+    var td2 = document.createElement("TD");
+    var td3 = document.createElement("TD");
+    var td4 = document.createElement("TD");
+    var td5 = document.createElement("TD");
+    td1.appendChild(document.createTextNode(product.name));
+    td2.appendChild(document.createTextNode(product.condition));
+    td3.appendChild(document.createTextNode(product.price));
+    td4.appendChild(document.createTextNode(product.description));
+    td5.appendChild(document.createTextNode(product.created_at));
+    tr.appendChild(td1);
+    tr.appendChild(td2);
+    tr.appendChild(td3);
+    tr.appendChild(td4);
+    tr.appendChild(td5);
+    document.getElementById("products").appendChild(tr);
   }
   function addProduct() {
     var tempUrl = getAddUrl();
     if (tempUrl == "") return;
+    var name = document.getElementById('apName').value;
+    var condition = document.getElementById('apCondition').value;
+    var price = document.getElementById('apPrice').value;
+    var description = document.getElementById('apDes').value;
+    var curProduct = {"name" : name, "condition" : condition, "price" : price, "description" : description, "created_at" : new Date()};
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
-        if (this.readyState == 4 && this.status == 200) {
-          document.getElementById("aStatus").innerHTML = "new "+ document.getElementById('apName').value + " created";
-        } else {
-          document.getElementById("aStatus").innerHTML = "create failed";
-        }
+      if (this.readyState == 4 && this.status == 200) {
+        document.getElementById("aStatus").innerHTML = "new "+ document.getElementById('apName').value + " created";
+        upDateTable(curProduct);
+      } else {
+        document.getElementById("aStatus").innerHTML = "create failed due to connection";
+        return;
+      }
     }
     xhttp.open("POST", url + tempUrl, true);
     xhttp.send();
   };
-  function getAddUrl() {
+  function getAddUrl(curProduct) {
     var name = document.getElementById('apName').value;
+    var condition = document.getElementById('apCondition').value;
     var price = document.getElementById('apPrice').value;
-    console.log(name + " " + price);
+    var description = document.getElementById('apDes').value;
     if (name.length == 0) {
       document.getElementById("aStatus").innerHTML = "Empty name input!";
       return "";
@@ -224,11 +234,11 @@
     }
     var tempUrl = "";
     tempUrl += "name=" + name;
-    tempUrl += "&condition=" + document.getElementById('apCondition').value;
+    tempUrl += "&condition=" + condition;
     tempUrl += "&price=" + price;
-    tempUrl += "&description=" + document.getElementById('apDes').value;
+    tempUrl += "&description=" + description;
     return tempUrl;
-  }
+  };
   function sortTable(n) {
     var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0, up, down;
     table = document.getElementById("products");
