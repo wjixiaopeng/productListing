@@ -36,7 +36,9 @@ function addProduct(req, res) {
       res.setHeader("Access-Control-Allow-Origin","*");
       res.end(qdata.name + ' created!');
     });
-  } 
+  } else {
+  	return notFound(res);
+  }
 };
 
 // serach product function:
@@ -50,7 +52,7 @@ function searchProduct(req, res) {
     return filterSearch(qdata, res);
   } else {
   	fs.readFile('.' + qpath, function(err, data) {
-      if (err) notFound(res);
+      if (err) return notFound(res);
       // style.css should set the type
       if (qpath.split('.').pop() === 'css') {
       	res.writeHead(200, {'Content-Type': 'text/css'});
